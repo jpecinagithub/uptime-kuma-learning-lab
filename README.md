@@ -23,7 +23,7 @@ cómo se comunican los contenedores Docker, etc.
         │               │                  │
         ▼               ▼                  ▼
   Uptime Kuma     Monitoring API     Test Service
-  127.0.0.1:3001   (red interna)     (red interna)
+  127.0.0.1:3002   (red interna)     (red interna)
   (túnel SSH)           │
         │               │
         └───────┬───────┘
@@ -72,9 +72,9 @@ Ver [docs/UPDATE.md](docs/UPDATE.md) (siempre backup antes de actualizar).
 | Qué | Cómo |
 |---|---|
 | Learning Dashboard | `http://IP_DEL_SERVIDOR:8090` (puerto público) |
-| Panel admin de Uptime Kuma | **túnel SSH**: `ssh -L 3001:127.0.0.1:3001 ubuntu@IP` → `http://localhost:3001` |
+| Panel admin de Uptime Kuma | **túnel SSH**: `ssh -L 3002:127.0.0.1:3002 ubuntu@IP` → `http://localhost:3002` |
 
-El puerto 3001 **nunca** se expone a Internet: es la consola administrativa.
+El puerto 3002 **nunca** se expone a Internet: es la consola administrativa.
 
 ## Estructura del repo
 

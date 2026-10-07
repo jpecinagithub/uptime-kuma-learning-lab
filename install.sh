@@ -72,7 +72,7 @@ check_system() {
   echo "Disco (/)         : $DISK"
   echo ""
   echo "Puertos relevantes:"
-  for p in 22 3001 8090 4000; do
+  for p in 22 3002 8090 4000; do
     if ss -ltn 2>/dev/null | awk '{print $4}' | grep -qE ":${p}$"; then
       echo "  puerto $p  → OCUPADO"
     else
@@ -184,7 +184,7 @@ setup_env() {
   if [ -z "${UK_USERNAME:-}" ] || [ -z "${UK_PASSWORD:-}" ]; then
     echo ""
     echo "Uptime Kuma necesita un usuario administrador. Se crea la PRIMERA vez"
-    echo "que entras a http://localhost:3001 (vía túnel SSH, ver resumen final)."
+    echo "que entras a http://localhost:3002 (vía túnel SSH, ver resumen final)."
     echo "Si ya lo creaste, indícalo aquí para que monitoring-api pueda leer Kuma."
     echo "(El navegador nunca verá estas credenciales: solo viven en este .env)"
     if [ "$YES" = 1 ]; then
@@ -261,13 +261,13 @@ final_summary() {
   printf '%-22s %s\n' "SERVICIO" "ESTADO"
   printf '%-22s %s\n' "----------------------" "------"
 
-  KUMA_ESTADO="❌"; if curl -sf -m 5 http://127.0.0.1:3001/ >/dev/null 2>&1; then KUMA_ESTADO="✅"; fi
+  KUMA_ESTADO="❌"; if curl -sf -m 5 http://127.0.0.1:3002/ >/dev/null 2>&1; then KUMA_ESTADO="✅"; fi
   API_ESTADO="❌";  if curl -sf -m 5 http://localhost:8090/api/health >/dev/null 2>&1; then API_ESTADO="✅"; fi
   DASH_ESTADO="❌"; if curl -sf -m 5 http://localhost:8090/ >/dev/null 2>&1; then DASH_ESTADO="✅"; fi
   TEST_ESTADO="❌"; if [ "$(svc_state test-service)" = "running" ]; then TEST_ESTADO="✅"; fi
   VOL_ESTADO="❌";  if docker volume ls --format '{{.Name}}' | grep -qE 'uptime-kuma-data$'; then VOL_ESTADO="✅"; fi
 
-  printf '%-22s %s\n' "Uptime Kuma"        "$KUMA_ESTADO (127.0.0.1:3001, solo localhost)"
+  printf '%-22s %s\n' "Uptime Kuma"        "$KUMA_ESTADO (127.0.0.1:3002, solo localhost)"
   printf '%-22s %s\n' "Monitoring API"     "$API_ESTADO (/api/health)"
   printf '%-22s %s\n' "Learning Dashboard" "$DASH_ESTADO (puerto 8090)"
   printf '%-22s %s\n' "Test Service"       "$TEST_ESTADO (red interna, Chaos Lab)"
@@ -276,7 +276,7 @@ final_summary() {
   echo ""
   IP_PUB=$(curl -s -m 8 https://api.ipify.org 2>/dev/null || echo "no detectada")
   echo "IP pública del servidor : $IP_PUB"
-  echo "Puertos                 : 22 (SSH), 8090 (dashboard público), 3001 (Kuma, SOLO localhost)"
+  echo "Puertos                 : 22 (SSH), 8090 (dashboard público), 3002 (Kuma, SOLO localhost)"
   echo "RAM / Disco             : $(free -g | awk '/^Mem:/{print $2}') GB RAM | $(df -h / | awk 'NR==2{print $4}') libres en /"
   echo "Contenedores            : $(docker compose ps -q 2>/dev/null | wc -l) en el proyecto monitoring-lab"
   echo ""
@@ -284,8 +284,8 @@ final_summary() {
   echo "  http://$IP_PUB:8090"
   echo ""
   echo "Acceso al panel ADMIN de Uptime Kuma (túnel SSH cifrado):"
-  echo "  1) En tu ordenador:  ssh -L 3001:127.0.0.1:3001 ubuntu@$IP_PUB"
-  echo "  2) En tu navegador:  http://localhost:3001"
+  echo "  1) En tu ordenador:  ssh -L 3002:127.0.0.1:3002 ubuntu@$IP_PUB"
+  echo "  2) En tu navegador:  http://localhost:3002"
   echo "  (La primera vez, crea ahí el usuario administrador de Kuma)"
   echo ""
   warn "Abre el puerto 8090: 1) en Oracle Cloud (VCN → Security Lists → regla de"

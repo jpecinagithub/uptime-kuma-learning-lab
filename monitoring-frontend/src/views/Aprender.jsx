@@ -16,7 +16,7 @@ const CONCEPTS = [
   },
   {
     id: 'puerto', title: '¿Qué es un puerto?',
-    text: 'Un servidor tiene una IP, pero ofrece muchos servicios a la vez. El puerto es el número que identifica a qué servicio llamas: 22 = SSH, 80 = web, 443 = web segura, 3001 = Uptime Kuma (en nuestro caso).',
+    text: 'Un servidor tiene una IP, pero ofrece muchos servicios a la vez. El puerto es el número que identifica a qué servicio llamas: 22 = SSH, 80 = web, 443 = web segura, 3002 = Uptime Kuma (en nuestro caso).',
     flow: ['IP del servidor', '+ puerto 8090', '↓', 'Educational Dashboard'],
   },
   {

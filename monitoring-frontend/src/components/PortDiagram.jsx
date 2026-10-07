@@ -20,11 +20,11 @@ const ROWS = [
   },
   {
     from: 'localhost (túnel SSH)',
-    via: ':3001',
+    via: ':3002',
     to: 'Uptime Kuma',
     scope: 'localhost',
     scopeLabel: 'Solo localhost',
-    desc: 'El panel de Uptime Kuma NUNCA se expone a Internet. Acceso con: ssh -L 3001:127.0.0.1:3001 ubuntu@IP',
+    desc: 'El panel de Uptime Kuma NUNCA se expone a Internet. Acceso con: ssh -L 3002:127.0.0.1:3002 ubuntu@IP',
   },
   {
     from: 'Red interna Docker',

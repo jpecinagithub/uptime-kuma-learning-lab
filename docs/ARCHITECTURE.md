@@ -17,7 +17,7 @@
    ┌──────────────────┐      ┌──────────────────┐
    │   uptime-kuma    │◄─────│  monitoring-api  │
    │  louislam/...:2  │datos │  Node + Express  │
-   │  127.0.0.1:3001  │      │  SIN puertos     │
+   │  127.0.0.1:3002  │      │  SIN puertos     │
    └──────────────────┘      └────────┬─────────┘
               ▲                       │ /api/*
               │ monitoriza            ▼
@@ -40,10 +40,10 @@ a la red del servidor. Desde fuera solo se ven los puertos publicados.
 
 ## Decisiones y sus porqués
 
-**Uptime Kuma en `127.0.0.1:3001` (solo localhost).**
+**Uptime Kuma en `127.0.0.1:3002` (solo localhost).**
 Su panel es administrativo: permite crear, pausar y borrar monitores. No hay
-motivo para exponerlo a Internet. El túnel SSH (`ssh -L 3001:127.0.0.1:3001`)
-cifra el acceso y lo deja disponible en tu máquina como `localhost:3001`.
+motivo para exponerlo a Internet. El túnel SSH (`ssh -L 3002:127.0.0.1:3002`)
+cifra el acceso y lo deja disponible en tu máquina como `localhost:3002`.
 
 **Monitoring API sin puertos publicados.**
 Es el único que conoce las credenciales de Kuma (viven en `.env`, solo backend).

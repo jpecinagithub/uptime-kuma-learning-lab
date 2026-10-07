@@ -12,7 +12,8 @@
  *  - Para hostnames: se resuelven TODAS las IPs con dns.lookup y se
  *    comprueba cada una. Se rechazan `localhost` y sufijos
  *    `.localhost` / `.internal`. Si no resuelve, se bloquea.
- *  - Puertos: 1-65535, pero se bloquean 22, 3001, 4000, 8000-8100 y 3900-3910
+ *  - Puertos: 1-65535, pero se bloquean 22, 3001, 3002, 4000, 8000-8100 y 3900-3910
+ *    (3001 = otro servicio del host; 3002 = panel admin de Kuma en localhost)
  *    (SSH, Kuma, esta API, dashboard y gateways internos).
  *
  * Los mensajes de error son claros y en español, sin filtrar detalles internos.
@@ -45,7 +46,7 @@ const IPV4_BLOCKS = [
   ['198.18.0.0', 15], // benchmarking (RFC 2544, no enrutable en Internet)
 ];
 
-const BLOCKED_PORTS = new Set([22, 3001, 4000]);
+const BLOCKED_PORTS = new Set([22, 3001, 3002, 4000]);
 function isBlockedPort(p) {
   if (BLOCKED_PORTS.has(p)) return true;
   if (p >= 8000 && p <= 8100) return true; // dashboard y rango cercano

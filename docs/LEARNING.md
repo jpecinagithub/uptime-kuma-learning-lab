@@ -13,7 +13,7 @@ dashboard tiene además su botón **"¿Qué está ocurriendo aquí?"**.
 - **Volumen**: carpeta gestionada por Docker que persiste aunque el contenedor
   se borre. Aquí vive la base de datos de Uptime Kuma.
 - **Puerto**: número que identifica un servicio dentro de una máquina.
-  *Público* (8090: accesible desde Internet), *localhost* (3001: solo dentro
+  *Público* (8090: accesible desde Internet), *localhost* (3002: solo dentro
   del servidor), *interno Docker* (4000: solo entre contenedores).
 - **API**: forma pactada de pedirle cosas a un programa por red (normalmente
   HTTP con JSON). Nuestra API expone `/api/monitors`, `/api/health`, etc.

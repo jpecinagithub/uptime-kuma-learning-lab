@@ -39,8 +39,8 @@ Qué hace, en orden:
 ## Primer arranque: crear el admin de Uptime Kuma
 
 1. En tu ordenador, abre el túnel SSH:
-   `ssh -L 3001:127.0.0.1:3001 ubuntu@IP_SERVIDOR`
-2. En tu navegador: `http://localhost:3001`
+   `ssh -L 3002:127.0.0.1:3002 ubuntu@IP_SERVIDOR`
+2. En tu navegador: `http://localhost:3002`
 3. Crea el usuario administrador (solo la primera vez).
 4. Rellena `UK_USERNAME` / `UK_PASSWORD` en el `.env` del servidor y reinicia
    la API: `docker compose up -d monitoring-api`.
@@ -68,4 +68,4 @@ sudo ufw allow 8090/tcp
 sudo ufw status
 ```
 
-El puerto **3001 NO se abre**: Uptime Kuma admin solo vía túnel SSH.
+El puerto **3002 NO se abre**: Uptime Kuma admin solo vía túnel SSH.

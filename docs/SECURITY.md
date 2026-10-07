@@ -16,7 +16,7 @@ Puertos del proyecto:
 |---|---|---|
 | 22 (SSH) | Sí (ya lo estaba) | administración |
 | 8090 (dashboard) | Sí (hay que abrirlo) | único puerto público nuevo |
-| 3001 (Kuma admin) | **No** — solo `127.0.0.1` | panel administrativo; acceso vía túnel SSH |
+| 3002 (Kuma admin) | **No** — solo `127.0.0.1` | panel administrativo; acceso vía túnel SSH |
 | 4000 (API) | No — red Docker interna | nadie externo debe llamarla directamente |
 | 3000 (test-service) | No — red Docker interna | solo API y Kuma |
 

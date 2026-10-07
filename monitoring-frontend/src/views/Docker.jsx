@@ -9,7 +9,7 @@ const SERVICES = ['uptime-kuma', 'monitoring-api', 'monitoring-frontend', 'test-
 const LINE_OPTIONS = [100, 500, 1000]
 
 const EXPECTED = [
-  { name: 'uptime-kuma', port: ':3001', note: 'solo localhost (túnel SSH)' },
+  { name: 'uptime-kuma', port: ':3002', note: 'solo localhost (túnel SSH)' },
   { name: 'monitoring-api', port: ':4000', note: 'solo red interna Docker' },
   { name: 'monitoring-frontend', port: ':8090', note: 'público (dashboard)' },
   { name: 'test-service', port: 'interno', note: 'solo red interna Docker' },

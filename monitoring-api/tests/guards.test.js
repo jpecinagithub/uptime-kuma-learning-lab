@@ -53,7 +53,7 @@ test('bloquea localhost y sufijos internos', async () => {
 });
 
 test('bloquea puertos de administración e internos', async () => {
-  for (const p of [22, 3001, 4000, 8000, 8090, 8100, 3900, 3905, 3910]) {
+  for (const p of [22, 3001, 3002, 4000, 8000, 8090, 8100, 3900, 3905, 3910]) {
     await assert.rejects(() => assertSafeTarget('8.8.8.8', p), /bloqueado/, `puerto ${p}`);
   }
 });

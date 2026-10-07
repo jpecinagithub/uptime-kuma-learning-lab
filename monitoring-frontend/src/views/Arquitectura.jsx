@@ -24,7 +24,7 @@ const NODES = {
   },
   kuma: {
     label: 'Uptime Kuma',
-    que: 'La herramienta open-source de monitorización (puerto 3001, solo localhost).',
+    que: 'La herramienta open-source de monitorización (puerto 3002, solo localhost).',
     funcion: 'Ejecuta los checks (HTTP, ping, TCP, DNS) cada N segundos y guarda cada resultado en su base de datos SQLite.',
     comunica: 'Su panel admin solo es accesible por túnel SSH. La API le pregunta por sus datos mediante un adaptador aislado.',
   },

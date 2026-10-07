@@ -9,18 +9,22 @@ ss -ltnp | grep ':8090'      # ver quién lo usa
 Si otro servicio lo necesita, cambia el mapeo en `docker-compose.yml`
 (`"8091:80"`, por ejemplo), actualiza la regla del firewall y re-arranca.
 
-## El puerto 3001 está ocupado
+## El puerto 3002 está ocupado (o el 3001 original)
 
-Otro Kuma u otro servicio lo usa. Localízalo con `ss -ltnp | grep ':3001'`.
-El compose fija `127.0.0.1:3001:3001`; si el conflicto es inevitable, cambia
-ambos lados del mapeo (y el túnel SSH apuntará al nuevo puerto).
+El puerto 3001 del host lo usa otro servicio (p. ej. nuestro ERP3), por eso
+Uptime Kuma escucha en el host en `127.0.0.1:3002` (el contenedor sigue en
+su 3001 interno). Si el 3002 también estuviera ocupado, localízalo con
+`ss -ltnp | grep ':3002'` y cambia solo el lado izquierdo del mapeo en
+`docker-compose.yml` (`"127.0.0.1:3003:3001"`), sin tocar el `3001` de la
+derecha (puerto interno del contenedor) ni `KUMA_URL` (red interna Docker).
+El túnel SSH apuntará al nuevo puerto: `ssh -L 3003:127.0.0.1:3003`.
 
 ## El dashboard muestra "modo demo" aunque Kuma corre
 
 La API no pudo autenticarse en Kuma. Revisa:
 
 1. `UK_USERNAME` / `UK_PASSWORD` en `.env` (¿creaste el admin en
-   `http://localhost:3001` vía túnel SSH?).
+   `http://localhost:3002` vía túnel SSH?).
 2. Logs: `docker compose logs monitoring-api | tail -50`
 3. Conectividad interna: `docker compose exec monitoring-api wget -q -O- http://uptime-kuma:3001/ | head -c 200`
 

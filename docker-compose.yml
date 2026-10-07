@@ -10,7 +10,7 @@
 #   Host Oracle (Ubuntu)
 #     └─ Docker Engine                      ← el motor que ejecuta contenedores
 #          └─ Docker Compose                ← lee ESTE archivo y orquesta todo
-#               ├─ uptime-kuma              ← el monitor (puerto 3001, solo localhost)
+#               ├─ uptime-kuma              ← el monitor (puerto 3002, solo localhost)
 #               ├─ monitoring-api           ← nuestra API intermediaria (red interna)
 #               ├─ monitoring-frontend      ← el dashboard educativo (puerto 8090)
 #               └─ test-service             ← "víctima" controlada del Chaos Lab
@@ -35,16 +35,16 @@ services:
   # servicios responden (HTTP, ping, DNS, TCP...) y guarda el historial.
   # Por qué SOLO localhost: el panel de Uptime Kuma es ADMINISTRATIVO
   # (permite crear/borrar monitores). No debe ser público: se accede con un
-  # túnel SSH cifrado:  ssh -L 3001:127.0.0.1:3001 ubuntu@IP_ORACLE
-  # y luego en tu navegador: http://localhost:3001
+  # túnel SSH cifrado:  ssh -L 3002:127.0.0.1:3002 ubuntu@IP_ORACLE
+  # y luego en tu navegador: http://localhost:3002
   uptime-kuma:
     image: louislam/uptime-kuma:2
     restart: unless-stopped
     ports:
-      # "127.0.0.1:3001:3001" = <IP-del-host>:<puerto-host>:<puerto-contenedor>
-      # Al fijar 127.0.0.1, el puerto 3001 solo existe DENTRO del servidor.
+      # "127.0.0.1:3002:3001" = <IP-del-host>:<puerto-host>:<puerto-contenedor>
+      # Al fijar 127.0.0.1, el puerto 3002 solo existe DENTRO del servidor.
       # Desde Internet es invisible (además el firewall no lo abre).
-      - "127.0.0.1:3001:3001"
+      - "127.0.0.1:3002:3001"
     volumes:
       # Persistencia: /app/data es donde Uptime Kuma guarda su base SQLite.
       # Al usar un volumen Docker nombrado, los datos sobreviven a
@@ -166,7 +166,7 @@ services:
 # Dentro de ella se resuelven por NOMBRE (uptime-kuma, monitoring-api, ...),
 # sin depender de IPs internas fijas (spec §36).
 # Desde fuera de esta red solo se ven los puertos publicados (8090 y
-# 127.0.0.1:3001). El tráfico entre contenedores nunca sale al host.
+# 127.0.0.1:3002). El tráfico entre contenedores nunca sale al host.
 # -----------------------------------------------------------------------------
 networks:
   lab-net:

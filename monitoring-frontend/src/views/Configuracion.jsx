@@ -4,7 +4,7 @@ import { useApp } from '../context.jsx'
 import StatusBadge from '../components/StatusBadge.jsx'
 import LearningTip from '../components/LearningTip.jsx'
 
-const SSH_CMD = 'ssh -L 3001:127.0.0.1:3001 ubuntu@TU_IP_ORACLE'
+const SSH_CMD = 'ssh -L 3002:127.0.0.1:3002 ubuntu@TU_IP_ORACLE'
 
 export default function Configuracion() {
   const {
@@ -108,7 +108,7 @@ export default function Configuracion() {
           </p>
           <div className="code-block">{SSH_CMD}</div>
           <p className="hint">
-            Después abre en tu navegador <span className="mono">http://localhost:3001</span>.
+            Después abre en tu navegador <span className="mono">http://localhost:3002</span>.
             Lo que escribas ahí viaja cifrado por SSH hasta el servidor.
           </p>
           <hr className="divider" />
