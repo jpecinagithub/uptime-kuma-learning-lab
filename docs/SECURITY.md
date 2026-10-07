@@ -51,6 +51,12 @@ implementa operaciones de lectura** (`list`, `stats`, `logs` con límite).
 No existe ningún endpoint que ejecute `exec`, `run`, `rm` o comandos shell.
 Los logs están limitados (100/500/1000 líneas) y son de solo lectura.
 
+Matiz honesto: el `:ro` del montaje no limita la API del socket en sí; la
+garantía de "solo lectura" la da el código (`src/services/dockerInfo.js`
+tiene una whitelist estricta de subcomandos y contenedores). El contenedor
+tampoco corre como root: `entrypoint.sh` mete al usuario `node` en el grupo
+dueño del socket y baja privilegios con `su-exec` antes de arrancar Node.
+
 ## Chaos Lab limitado
 
 El Chaos Lab solo puede cambiar el modo de `test-service` (el contenedor
