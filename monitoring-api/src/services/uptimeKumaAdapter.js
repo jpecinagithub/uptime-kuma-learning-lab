@@ -19,12 +19,14 @@
  *  3. `monitorList` llega como PUSH (diccionario por id en string) justo tras el
  *     login; además se pide `getMonitorList` con ack (estrategia ack-first,
  *     push-fallback: si el ack falla se espera el push unos segundos).
- *  4. Heartbeats: se emite `getMonitorBeats` con ack `{ monitorID }`; si falla
- *     o expira, se intenta `getHeartbeats`; además se escuchan los pushes
- *     `heartbeatList` (lista) y `heartbeat` (uno solo). Se cachean en memoria
- *     los últimos ~500 heartbeats por monitor (ventana aproximada de 30 días;
- *     con intervalos cortos la caché cubre menos tiempo — es una aproximación
- *     documentada, no una ventana exacta).
+ *  4. Heartbeats (Kuma 2.x, verificado en server/server.js 2.5.X):
+ *     `getMonitorBeats(monitorID, periodHours)` con ack `{ ok, data: [...] }`;
+ *     el periodo es OBLIGATORIO (sin él el servidor responde { ok:false }).
+ *     Además se escuchan los pushes `heartbeatList` (lista) y `heartbeat`
+ *     (uno solo). Se cachean en memoria los últimos ~500 heartbeats por
+ *     monitor (ventana aproximada de 30 días; con intervalos cortos la caché
+ *     cubre menos tiempo — es una aproximación documentada, no exacta).
+ *     OJO: `getHeartbeats` NO existe en 2.x (era 1.x); no usarlo.
  *  5. Códigos de estado de heartbeat: 0=DOWN, 1=UP, 2=PENDING, 3=MAINTENANCE.
  *  6. Mutaciones en 2.x: `add` (¡NO `addMonitor` como en 1.x!), `editMonitor`,
  *     `deleteMonitor`, `pauseMonitor`, `resumeMonitor`. Solo se usa `add`
@@ -332,7 +334,9 @@ class UptimeKumaAdapter {
     });
   }
 
-  /** Emite un evento Socket.IO esperando su ack, con timeout. */
+  /** Emite un evento Socket.IO esperando su ack, con timeout.
+   *  payload puede ser un valor único o un ARRAY (se expande como
+   *  argumentos: necesario para getMonitorBeats(monitorID, periodHours)). */
   emitAck(event, payload, timeoutMs = 15000) {
     return new Promise((resolve, reject) => {
       if (!this.socket || !this.socket.connected) {
@@ -342,7 +346,8 @@ class UptimeKumaAdapter {
         reject(new Error(`Timeout esperando respuesta de "${event}".`));
       }, timeoutMs);
       if (timer.unref) timer.unref();
-      this.socket.timeout(timeoutMs).emit(event, payload, (err, res) => {
+      const args = Array.isArray(payload) ? payload : [payload];
+      this.socket.timeout(timeoutMs).emit(event, ...args, (err, res) => {
         clearTimeout(timer);
         if (err) return reject(err instanceof Error ? err : new Error(String((err && err.message) || err)));
         resolve(res);
@@ -403,23 +408,18 @@ class UptimeKumaAdapter {
     }
   }
 
-  async refreshBeats(monitorID) {
-    let beats = null;
+  async refreshBeats(monitorID, range = '24h') {
+    // Kuma 2.x: getMonitorBeats(monitorID, periodHours) → ack { ok, data }.
+    // El periodo (horas) es obligatorio; sin él el servidor responde ok:false.
+    const hours = { '1h': 1, '6h': 6, '24h': 24, '7d': 24 * 7, '30d': 24 * 30 }[range] || 24;
     try {
-      const res = await this.emitAck('getMonitorBeats', Number(monitorID), 25000);
-      beats = Array.isArray(res) ? res : res && Array.isArray(res.beats) ? res.beats : null;
-    } catch {
-      try {
-        const res2 = await this.emitAck('getHeartbeats', {}, 25000);
-        if (Array.isArray(res2)) beats = res2.filter((b) => String(b.monitorID) === String(monitorID));
-        else if (res2 && Array.isArray(res2.beats)) {
-          beats = res2.beats.filter((b) => String(b.monitorID) === String(monitorID));
-        }
-      } catch {
-        beats = null;
-      }
+      const res = await this.emitAck('getMonitorBeats', [Number(monitorID), hours], 25000);
+      if (res && res.ok === false) throw new Error(res.msg || 'getMonitorBeats rechazado');
+      const beats = res && Array.isArray(res.data) ? res.data : null;
+      if (beats) this.mergeBeats(monitorID, beats);
+    } catch (e) {
+      console.warn(`[kuma-adapter] no se pudieron leer heartbeats de ${monitorID}:`, e.message);
     }
-    if (beats) this.mergeBeats(monitorID, beats);
   }
 
   /** Construye la lista de monitores con agregados calculados de la caché. */
