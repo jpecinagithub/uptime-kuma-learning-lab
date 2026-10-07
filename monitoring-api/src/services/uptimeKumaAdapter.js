@@ -26,8 +26,10 @@
  *     con intervalos cortos la caché cubre menos tiempo — es una aproximación
  *     documentada, no una ventana exacta).
  *  5. Códigos de estado de heartbeat: 0=DOWN, 1=UP, 2=PENDING, 3=MAINTENANCE.
- *  6. Mutaciones disponibles: `addMonitor`, `editMonitor`, `deleteMonitor`,
- *     `pauseMonitor`, `resumeMonitor` (solo se usa `addMonitor` para el seed).
+ *  6. Mutaciones en 2.x: `add` (¡NO `addMonitor` como en 1.x!), `editMonitor`,
+ *     `deleteMonitor`, `pauseMonitor`, `resumeMonitor`. Solo se usa `add`
+ *     para el seed. Referencia: el migrador fliplafe/uptime-kuma-migrator
+ *     (probado contra 2.2.1) emite `add` con ack `{ ok }`.
  *  7. Las API keys de Kuma SOLO sirven para `/metrics` (Prometheus); NO sirven
  *     para autenticación general. Por eso el fallback de métricas solo ofrece
  *     estado+latencia aproximados, nunca gestión.
@@ -467,11 +469,15 @@ class UptimeKumaAdapter {
   }
 
   async getMonitors() {
-    if (this.connected && Object.keys(this.monitors).length) return this.buildFromSocket();
-    if (this.metricsApiKey) return this.getMonitorsFromMetrics();
-    const e = new Error('Uptime Kuma no está disponible.');
-    e.status = 503;
-    throw e;
+    if (!this.connected) {
+      if (this.metricsApiKey) return this.getMonitorsFromMetrics();
+      const e = new Error('Uptime Kuma no está disponible.');
+      e.status = 503;
+      throw e;
+    }
+    // Conectado pero lista vacía (Kuma recién creado o sin monitores):
+    // es un estado válido → [] y no 503.
+    return this.buildFromSocket();
   }
 
   async getMonitorById(id) {
@@ -581,9 +587,9 @@ class UptimeKumaAdapter {
     if (Object.keys(this.monitors).length > 0) return;
     console.log('[kuma-adapter] lista vacía y SEED_MONITORS=true: creando monitores de ejemplo…');
     const seeds = [
-      { type: 'http', name: 'Learning Dashboard', url: 'http://monitoring-frontend/', interval: 60, maxretries: 2 },
-      { type: 'http', name: 'Web pública fiable', url: 'https://example.com', interval: 60, maxretries: 2 },
-      { type: 'http', name: 'Endpoint HTTP de pruebas', url: 'https://httpbin.org/status/200', interval: 60, maxretries: 2 },
+      { type: 'http', name: 'Learning Dashboard', url: 'http://monitoring-frontend/', interval: 60, maxretries: 2, accepted_statuscodes: ['200-299'] },
+      { type: 'http', name: 'Web pública fiable', url: 'https://example.com', interval: 60, maxretries: 2, accepted_statuscodes: ['200-299'] },
+      { type: 'http', name: 'Endpoint HTTP de pruebas', url: 'https://httpbin.org/status/200', interval: 60, maxretries: 2, accepted_statuscodes: ['200-299'] },
       { type: 'port', name: 'Servicio TCP', hostname: '1.1.1.1', port: 443, interval: 60, maxretries: 2 },
       { type: 'ping', name: 'Ping', hostname: '1.1.1.1', interval: 60, maxretries: 2 },
       {
@@ -593,15 +599,24 @@ class UptimeKumaAdapter {
         interval: 20,
         timeout: 10,
         maxretries: 1,
+        accepted_statuscodes: ['200-299'],
       },
     ];
     for (const s of seeds) {
       try {
-        await this.emitAck('addMonitor', s, 20000);
+        // Kuma 2.x: el evento de creación es "add" (en 1.x era "addMonitor").
+        const res = await this.emitAck('add', s, 20000);
+        if (!res || !res.ok) throw new Error((res && res.msg) || 'el servidor no aceptó el monitor');
         console.log(`[kuma-adapter] seed creado: ${s.name}`);
       } catch (e) {
         console.warn(`[kuma-adapter] no se pudo crear "${s.name}":`, e.message);
       }
+    }
+    // Relee la lista para no servir datos vacíos mientras llega el push monitorList
+    try {
+      await this.refreshMonitors();
+    } catch (e) {
+      console.warn('[kuma-adapter] refresh tras seed falló:', e.message);
     }
   }
 }
