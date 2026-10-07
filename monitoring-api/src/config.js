@@ -23,8 +23,10 @@ module.exports = {
 
   kuma: {
     url: process.env.KUMA_URL || 'http://uptime-kuma:3001',
-    username: process.env.KUMA_USERNAME || '',
-    password: process.env.KUMA_PASSWORD || '',
+    // Se aceptan ambos nombres: UK_* (los que generan .env.example e
+    // install.sh) y KUMA_* (alias). Así un .env ya creado sigue valiendo.
+    username: process.env.KUMA_USERNAME || process.env.UK_USERNAME || '',
+    password: process.env.KUMA_PASSWORD || process.env.UK_PASSWORD || '',
     metricsApiKey: process.env.KUMA_METRICS_API_KEY || '',
   },
 
