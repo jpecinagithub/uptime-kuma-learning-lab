@@ -1,0 +1,1 @@
+{"dependencies":{"express":"^4.21.2"},"description":"Servicio deliberadamente controlable para el Chaos Lab del Monitoring Lab. Solo se usa para aprender: permite simular respuestas normales, lentas, errores 500, timeouts y caídas.","license":"MIT","main":"server.js","name":"test-service","private":true,"scripts":{"start":"node server.js"},"version":"1.0.0"}

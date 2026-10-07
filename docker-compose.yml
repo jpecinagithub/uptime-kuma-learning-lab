@@ -1,0 +1,181 @@
+# =============================================================================
+# Uptime Kuma Educational Monitoring Lab — docker-compose.yml
+# =============================================================================
+# Este archivo describe TODA la infraestructura del laboratorio como código.
+#
+# Concepto clave (spec §2): en lugar de instalar programas "a mano" en el
+# servidor, definimos cada servicio en este archivo y Docker Compose se
+# encarga de crearlos, conectarlos y mantenerlos corriendo:
+#
+#   Host Oracle (Ubuntu)
+#     └─ Docker Engine                      ← el motor que ejecuta contenedores
+#          └─ Docker Compose                ← lee ESTE archivo y orquesta todo
+#               ├─ uptime-kuma              ← el monitor (puerto 3001, solo localhost)
+#               ├─ monitoring-api           ← nuestra API intermediaria (red interna)
+#               ├─ monitoring-frontend      ← el dashboard educativo (puerto 8090)
+#               └─ test-service             ← "víctima" controlada del Chaos Lab
+#
+# Comandos esenciales:
+#   docker compose up -d --build   → construye e inicia todo en segundo plano
+#   docker compose ps              → estado de los contenedores
+#   docker compose logs -f <svc>   → ver logs de un servicio (SOLO LECTURA)
+#   docker compose down            → detener todo (los datos persisten en el volumen)
+#
+# NOTA: no hay "version:" arriba. Era obligatorio en Compose v1 y está
+# obsoleto desde Compose v2 (el plugin `docker compose` actual lo ignora).
+# =============================================================================
+
+name: monitoring-lab
+
+services:
+  # ---------------------------------------------------------------------------
+  # UPTIME KUMA — el monitor de verdad.
+  # ---------------------------------------------------------------------------
+  # Qué es: aplicación open-source que comprueba periódicamente si tus
+  # servicios responden (HTTP, ping, DNS, TCP...) y guarda el historial.
+  # Por qué SOLO localhost: el panel de Uptime Kuma es ADMINISTRATIVO
+  # (permite crear/borrar monitores). No debe ser público: se accede con un
+  # túnel SSH cifrado:  ssh -L 3001:127.0.0.1:3001 ubuntu@IP_ORACLE
+  # y luego en tu navegador: http://localhost:3001
+  uptime-kuma:
+    image: louislam/uptime-kuma:2
+    restart: unless-stopped
+    ports:
+      # "127.0.0.1:3001:3001" = <IP-del-host>:<puerto-host>:<puerto-contenedor>
+      # Al fijar 127.0.0.1, el puerto 3001 solo existe DENTRO del servidor.
+      # Desde Internet es invisible (además el firewall no lo abre).
+      - "127.0.0.1:3001:3001"
+    volumes:
+      # Persistencia: /app/data es donde Uptime Kuma guarda su base SQLite.
+      # Al usar un volumen Docker nombrado, los datos sobreviven a
+      # `docker compose down`, a actualizaciones y a reinicios del servidor.
+      # NO usamos NFS: un SQLite sobre red es lento y puede corromperse.
+      - uptime-kuma-data:/app/data
+    healthcheck:
+      # Kuma tarda ~1-2 min en arrancar la primera vez (migraciones de la BD).
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3001/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 10s
+      start_period: 120s
+      retries: 3
+    networks:
+      - lab-net
+
+  # ---------------------------------------------------------------------------
+  # MONITORING API — nuestra capa intermedia (Node.js + Express).
+  # ---------------------------------------------------------------------------
+  # Qué es: el único que habla con Uptime Kuma usando sus credenciales.
+  # Por qué existe: el navegador NUNCA debe recibir usuario/contraseña/API key
+  # de Kuma. El frontend llama a /api/* (nuestros endpoints propios) y este
+  # backend traduce a Uptime Kuma por la red interna Docker.
+  # Por qué SIN puertos publicados: nadie desde fuera necesita hablarle
+  # directamente; el frontend (nginx) le hace de reverse proxy en /api.
+  # Menos puertos expuestos = menos superficie de ataque (spec §35).
+  monitoring-api:
+    build: ./monitoring-api
+    restart: unless-stopped
+    env_file:
+      # Las variables vienen de .env (que NUNCA se sube a Git).
+      - .env
+    environment:
+      MODE: ${MODE:-auto}
+      KUMA_URL: http://uptime-kuma:3001
+      SEED_MONITORS: ${SEED_MONITORS:-true}
+      TEST_SERVICE_URL: http://test-service:3000
+      TEST_SERVICE_SECRET: ${TEST_SERVICE_SECRET}
+      TZ: ${TZ:-Europe/Madrid}
+    # SIN "ports:": solo accesible dentro de la red lab-net.
+    volumes:
+      # SOLO LECTURA (:ro). El backend necesita LEER información del host y
+      # de Docker para las pantallas "Servidor Oracle" y "Docker Visualizer",
+      # pero nunca debe modificar nada:
+      #  - docker.sock en modo lectura: permite `docker ps`, stats y logs.
+      #    El backend solo implementa operaciones de lectura (whitelist).
+      #  - /proc y / del host en lectura: CPU, RAM, disco y uptime reales.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc:/host/proc:ro
+      - /:/host/root:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:4000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+    depends_on:
+      - uptime-kuma
+      - test-service
+    networks:
+      - lab-net
+
+  # ---------------------------------------------------------------------------
+  # MONITORING FRONTEND — "Monitoring Lab", el dashboard educativo.
+  # ---------------------------------------------------------------------------
+  # Qué es: la aplicación web que ves en el navegador (Vite + React).
+  # Se sirve como archivos estáticos mediante nginx dentro del contenedor,
+  # que además hace de reverse proxy: /api/* → monitoring-api:4000.
+  # Así el navegador solo habla con UN origen (mismo host:puerto) y no hay
+  # problemas de CORS ni credenciales expuestas.
+  monitoring-frontend:
+    build: ./monitoring-frontend
+    restart: unless-stopped
+    ports:
+      # Puerto 8090 (NO 8080: en este servidor el 8080 ya está ocupado).
+      # Este es el ÚNICO puerto público nuevo del proyecto (además del 22 SSH).
+      # Hay que abrirlo en el firewall de Oracle (NSG) y en ufw. Ver INSTALL.md.
+      - "8090:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    depends_on:
+      - monitoring-api
+    networks:
+      - lab-net
+
+  # ---------------------------------------------------------------------------
+  # TEST SERVICE — la "víctima" controlada del Chaos Lab.
+  # ---------------------------------------------------------------------------
+  # Qué es: un mini-servidor Express cuyo comportamiento podemos cambiar a
+  # voluntad (normal, lento, error 500, timeout, caído). Sirve para PROVOCAR
+  # fallos deliberadamente y observar cómo Uptime Kuma los detecta.
+  # Por qué "expose" y no "ports": expose documenta el puerto dentro de la
+  # red Docker sin publicarlo al host. Nadie desde fuera puede tocarlo;
+  # solo monitoring-api (con el secreto) y uptime-kuma (como monitor).
+  test-service:
+    build: ./test-service
+    restart: unless-stopped
+    expose:
+      - "3000"
+    environment:
+      TEST_SERVICE_SECRET: ${TEST_SERVICE_SECRET}
+    healthcheck:
+      # /healthz responde SIEMPRE (incluso en modo "down"), para que el
+      # Chaos Lab no mate el contenedor por accidente.
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/healthz || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    networks:
+      - lab-net
+
+# -----------------------------------------------------------------------------
+# RED: todos los contenedores comparten la red privada "lab-net" (bridge).
+# Dentro de ella se resuelven por NOMBRE (uptime-kuma, monitoring-api, ...),
+# sin depender de IPs internas fijas (spec §36).
+# Desde fuera de esta red solo se ven los puertos publicados (8090 y
+# 127.0.0.1:3001). El tráfico entre contenedores nunca sale al host.
+# -----------------------------------------------------------------------------
+networks:
+  lab-net:
+    driver: bridge
+
+# -----------------------------------------------------------------------------
+# VOLÚMENES: almacenamiento persistente gestionado por Docker.
+# uptime-kuma-data contiene la base de datos SQLite de Uptime Kuma
+# (/app/data). Es lo que respalda scripts/backup.sh.
+# -----------------------------------------------------------------------------
+volumes:
+  uptime-kuma-data:

@@ -1,0 +1,21 @@
+# Secretos: el .env real nunca se sube al repositorio.
+.env
+.env.bak.*
+
+# Dependencias de Node (se reinstalan con npm install / docker build).
+node_modules/
+
+# Salida de compilación del frontend.
+dist/
+
+# Logs locales.
+*.log
+
+# Basura de macOS.
+.DS_Store
+
+# Backups locales (contienen datos del laboratorio).
+backups/
+
+# Datos de Uptime Kuma si alguien los monta en local (no deberían estar aquí).
+uptime-kuma-data/
