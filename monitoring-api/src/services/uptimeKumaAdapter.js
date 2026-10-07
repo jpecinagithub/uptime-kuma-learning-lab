@@ -586,20 +586,25 @@ class UptimeKumaAdapter {
     if (!this.seedEnabled) return;
     if (Object.keys(this.monitors).length > 0) return;
     console.log('[kuma-adapter] lista vacía y SEED_MONITORS=true: creando monitores de ejemplo…');
+    // Campos exigidos por el handler "add" de Kuma 2.x (server/server.js):
+    // accepted_statuscodes (array de strings; si falta, el servidor rompe con
+    // "Cannot read properties of undefined") y conditions (se guarda como
+    // JSON; si falta, viola NOT NULL). La UI envía conditions: [] por defecto.
+    const base = { accepted_statuscodes: ['200-299'], conditions: [] };
     const seeds = [
-      { type: 'http', name: 'Learning Dashboard', url: 'http://monitoring-frontend/', interval: 60, maxretries: 2, accepted_statuscodes: ['200-299'] },
-      { type: 'http', name: 'Web pública fiable', url: 'https://example.com', interval: 60, maxretries: 2, accepted_statuscodes: ['200-299'] },
-      { type: 'http', name: 'Endpoint HTTP de pruebas', url: 'https://httpbin.org/status/200', interval: 60, maxretries: 2, accepted_statuscodes: ['200-299'] },
-      { type: 'port', name: 'Servicio TCP', hostname: '1.1.1.1', port: 443, interval: 60, maxretries: 2 },
-      { type: 'ping', name: 'Ping', hostname: '1.1.1.1', interval: 60, maxretries: 2 },
+      { ...base, type: 'http', name: 'Learning Dashboard', url: 'http://monitoring-frontend/', interval: 60, maxretries: 2 },
+      { ...base, type: 'http', name: 'Web pública fiable', url: 'https://example.com', interval: 60, maxretries: 2 },
+      { ...base, type: 'http', name: 'Endpoint HTTP de pruebas', url: 'https://httpbin.org/status/200', interval: 60, maxretries: 2 },
+      { ...base, type: 'port', name: 'Servicio TCP', hostname: '1.1.1.1', port: 443, interval: 60, maxretries: 2 },
+      { ...base, type: 'ping', name: 'Ping', hostname: '1.1.1.1', interval: 60, maxretries: 2 },
       {
+        ...base,
         type: 'http',
         name: 'Test Service (Chaos)',
         url: 'http://test-service:3000/',
         interval: 20,
         timeout: 10,
         maxretries: 1,
-        accepted_statuscodes: ['200-299'],
       },
     ];
     for (const s of seeds) {
